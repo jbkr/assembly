@@ -1,0 +1,20 @@
+;---------------------------------------------------------------
+;   VidOrg  --  Returns origin segment of video buffer
+;   Last update 3/8/89
+;
+;   1 entry point:
+;
+;   VidOrg:
+;      Caller must pass:
+;      AL : Code specifying display adapter type
+;      VidOrg returns the buffer origin segment in AX
+;---------------------------------------------------------------
+
+VidOrg     PROC
+           xor  AH,AH         ; Zero AH
+           mov  DI,AX         ; Copy AX (with code in AL) into DI
+           shl  DI,1          ; Multiply code by 2 to act as word index
+           lea  BX,OriginTbl  ; Load address of origin table into BX
+           mov  AX,[BX+DI]    ; Index into table using code as index
+           ret                ; Done; go home!
+VidOrg     ENDP

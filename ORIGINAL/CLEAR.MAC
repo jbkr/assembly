@@ -1,0 +1,20 @@
+;---------------------------------------------------------------
+;   CLEAR    --  Clears the entire visible screen buffer
+;   Last update 3/16/89
+;
+;      Caller must pass:
+;      In VidAddress:  The name of the string to be poked at
+;      In TheChar: The character to be pocked into the string
+;      In ToPos:   The 0-based position in the string to poke to
+;      Action:     Pokes character passed in TheChar into string
+;                  passed in Target to position passed in ToPos.
+;                  The first character in the string is 0, etc.
+;---------------------------------------------------------------
+Clear      MACRO VidAddress,ClearAtom,BufLength
+           les  DI,DWORD PTR VidAddress
+           mov  AX,ClearAtom
+           mov  CX,BufLength
+           rep  stosw
+           GotoXY 0,0
+           ENDM
+

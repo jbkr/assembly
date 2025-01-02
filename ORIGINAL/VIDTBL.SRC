@@ -1,0 +1,54 @@
+;---------------------------------------------------------------
+; DISPLAY ADAPTER INFORMATION LOOKUP TABLE
+;
+; This is the lookup table containing information on all legal
+; display adapters.  The first field in each element is a 26-
+; character string containing a brief description of the
+; adapter.  The next field is the segment of the video refresh
+; buffer.  The last three fields are the number of screen lines
+; an adapter displays when the 8-pixel, 14-pixel, and 16-pixel
+; fonts are loaded, respectively.  Note that not all adapters
+; support all fonts, but a screen line count is given for all
+; three fonts for all adapter types.  Illegal combinations will
+; not be accessed.
+;---------------------------------------------------------------
+VidInfoTbl DB      'No adapter identified      '    ; Code 0
+           DW      0B000H
+           DB      25,25,25
+           DB      'Monochrome Display Adapter '    ; Code 1
+           DW      0B000H
+           DB      25,25,25
+           DB      'Color Graphics Adapter     '    ; Code 2
+           DW      0B800H
+           DB      25,25,25
+           DB      'Code 3: Undefined          '    ; Code 3
+           DW      0B000H
+           DB      25,25,25
+           DB      'EGA with color monitor     '    ; Code 4
+           DW      0B800H
+           DB      43,25,25
+           DB      'EGA with mono monitor      '    ; Code 5
+           DW      0B000H
+           DB      43,25,25
+           DB      'Code 6: Undefined          '    ; Code 6
+           DW      0B000H
+           DB      25,25,25
+           DB      'VGA with mono monitor      '    ; Code 7
+           DW      0B000H
+           DB      50,27,25
+           DB      'VGA with color monitor     '    ; Code 8
+           DW      0B800H
+           DB      50,27,25
+           DB      'Code 9: Undefined          '    ; Code 9
+           DW      0B000H
+           DB      25,25,25
+           DB      'MCGA with digital color    '    ; Code 0AH
+           DW      0B800H
+           DB      25,25,25
+           DB      'MCGA with monochrome       '    ; Code 0BH
+           DW      0B000H
+           DB      25,25,25
+           DB      'MCGA with analog color     '    ; Code 0CH
+           DW      0B800H
+           DB      25,25,25
+

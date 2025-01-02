@@ -1,0 +1,47 @@
+DATA           MACRO
+               MOV  AX,MYDATA
+               MOV  DS,AX
+               ENDM
+
+CLEAR          MACRO
+               MOV  AH,06H
+               MOV  BH,07H
+               MOV  CX,0
+               MOV  DX,184FH
+               INT  10H
+
+               MOV  AH,2
+               MOV  BH,0
+               MOV  DH,0
+               MOV  DL,0
+               INT  10H
+               ENDM
+
+WRITE          MACRO SHOWIT,SHOWLENGTH
+               MOV  AH,40H
+               MOV  BX,0001H
+               MOV  CX,SHOWLENGTH
+               LEA  DX,SHOWIT
+               INT  21H
+               ENDM
+
+WRITELN        MACRO SHOWIT,SHOWLENGTH
+               WRITE SHOWIT,SHOWLENGTH
+               WRITE CRLF,2
+               ENDM
+
+NEWLINE        MACRO
+               WRITE CRLF,2
+               ENDM
+
+POKECHAR       MACRO TARGET,THECHAR,TOPOS
+               LEA  BX,TARGET
+               MOV  BYTE PTR [BX+TOPOS],THECHAR
+               ENDM
+
+EXIT           MACRO
+               MOV  AH,4CH
+               MOV  AL,0
+               INT  21H
+               ENDM
+

@@ -1,0 +1,82 @@
+;---------------------------------------------------------------
+;   VidCheck  --  Identifies display board & display parameters
+;   Last update 3/16/89
+;
+;   1 entry point:
+;
+;   VidCheck:
+;      Caller need pass no parameters.
+;      VidCheck identifies the installed display board by
+;      calling DispID.  It then calculates numerous display
+;      information values, which it then stores in the block
+;      of display information variables in the data segment.
+;---------------------------------------------------------------
+
+VidCheck   PROC
+           ; First task is to figure out which board is on the bus:
+           call DispID        ; Ask BIOS for adapter code; returns in AL
+           mov  DispType,AL   ; Store display adapter code in DispType
+
+           ; Next we determine the font size currently in force:
+           cmp  AL,0AH        ; See if board is an MCGA
+           jl   TryOld        ; If less than code 0AH, it's not an MCGA
+           mov  FontSize,16   ; MCGA supports *only* 16 pixel text font
+           jmp  GetName       ; Jump ahead to look up adapter name string
+TryOld:    cmp  DispType,1    ; Is the display adapter code 1, for MDA?
+           jne  TryCGA        ; If not, go test for CGA code 2
+           mov  FontSize,14   ; MDA uses *only* 14-pixel text font
+           jmp  GetName       ; Jump ahead to look up adapter name string
+TryCGA:    cmp  DispType,2    ; Is the display adapter code 2, for CGA?
+           jne  TryVGA        ; If not, go test for EGA/VGA font size
+           mov  FontSize,8    ; CGA uses *only* 8-pixel text font
+           jmp  GetName       ; Jump ahead to look up adapter name string
+TryVGA:    mov  AH,11H        ; Select VIDEO Get Font Information subservice
+           mov  AL,30H        ;   requires AH = 11H and AL = 30H
+           mov  BH,0          ; 0 = Get info about current font
+           int  10H           ; Call VIDEO
+           mov  FontSize,CL   ; Font size in pixels is returned in CL
+
+           ; Next we get the name string for the board from the info table:
+GetName:   mov  AL,DispType   ; Load display adapter code into AL
+           xor  AH,AH         ; Zero AH so we don't copy trash into DI
+           mov  DI,AX         ; Copy AX (with code in AL) into DI
+           mov  CL,5          ; We must shift the code 5 bits to mult. by 32
+           shl  DI,CL         ; Multiply code by 32 to act as table index
+           lea  BX,VidInfoTbl ; Load address of info. table into BX
+           mov  BordName,BX   ; Save pointer to video info. table in BordName
+           add  Bordname,DI   ; Add offset into table to right element
+
+           ; Next we get the refresh buffer segment from the table:
+           mov  AX,[BX+DI+27] ; Index into table past name string to segment
+           mov  VidSegment,AX ; Store segment from table to VidSegment variable
+
+           ; Here we calculate the number of lines on-screen from font size:
+           xor  AH,AH         ; Make sure AH has no trash in it
+           mov  AL,FontSize   ; Load the font size in pixels into AL
+           cmp  AL,8          ; Is it the 8-pixel font?
+           jne  Try14         ; If not, try the 14-pixel font
+           mov  AL,1          ; The 8-pixel font is table offset 1
+           jmp  ReadLns       ; Jump ahead to read screen lines from table
+Try14:     cmp  AL,14         ; Is it the 14-pixel font?
+           jne  Do16          ; If not, it has to be the 16-pixel font
+           mov  AL,2          ; The 14-pixel font is table offset 2
+           jmp  ReadLns       ; Jump ahead to read screen lines from table
+Do16:      mov  AL,3          ; The 16-pixel font is table offset 3
+ReadLns:   add  DI,AX         ; Add font size offset to table element offset
+           mov  AL,[BX+DI+28] ; Load the screen lines value from the table
+           mov  VisibleY,AL   ;  and store it in the VisibleY variable
+           mov  AH,VisibleX   ; Load the screen columns value to AH
+           xchg AH,AL         ; Exchange AH & AL for 0-basing
+           dec  AL            ; Subtract one from column count for 0-basing
+           dec  AH            ; Subtract one from line count for zero-basing
+           mov  LRXY,AX       ; And store 0-based X,Y word into LRXY variable
+
+           ; Finally, we calculate the size of the refresh buffer in bytes:
+           mov  AL,VisibleY   ; We multiply screen lines time screen columns
+           mul  VisibleX      ;  times 2 (for attributes) to get buffer size
+           shl  AX,1          ; Multiply lines * columns by 2
+           mov  VidBufSize,AX ; Store refresh buffer size in VidBufSize
+
+           ret                ; Return to caller
+VidCheck   ENDP
+

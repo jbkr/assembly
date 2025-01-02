@@ -1,0 +1,31 @@
+;---------------------------------------------------------------
+;   RULER    --  Displays a "1234567890"-style ruler on-screen
+;   Last update 11/25/91
+;
+;      Caller must pass:
+;      In VidAddress: The address of the start of the video buffer
+;      In Length:  The length of the ruler to be displayed
+;      In ScreenW: The width of the current screen (usually 80)
+;      In ScreenY: The line of the screen where the ruler is
+;                  to be displayed (0-24)
+;      In ScreenX: The row of the screen where the ruler should
+;                  start (0-79)
+;      Action:     Displays an ASCII ruler at ScreenX,ScreenY.
+;---------------------------------------------------------------
+Ruler      MACRO VidAddress,Length,ScreenW,ScreenX,ScreenY
+           les    DI,DWORD PTR VidAddress
+           add    DI,(ScreenY*ScreenW)  ; Calculate Y offset into vidbuf
+           add    DI,ScreenX   ; Add X offset into vidbuf
+           mov    CX,Length    ; CX monitors the ruler length
+           mov    AH,07        ; Attribute 7 is "normal" text
+           mov    AL,'1'       ; Start with digit "1"
+
+DoChar:    stosw               ; Note that there's no REP prefix!
+           add    AL,'1'       ; Bump the character value in AL up by 1
+           aaa                 ; Adjust AX to make this a BCD addition
+           add    AL,'0'       ; Basically, put binary 3 in AL's high nybble
+           mov    AH,07        ; Make sure our attribute is still 7
+           loop   DoChar       ; Go back & do another char until BL goes to 0
+
+           ENDM
+

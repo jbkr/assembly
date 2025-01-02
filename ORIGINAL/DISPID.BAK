@@ -1,0 +1,46 @@
+;---------------------------------------------------------------
+;   DispID  --  Identifies the installed display adapter
+;   Last update 3/12/92
+;
+;   1 entry point:
+;
+;   DispID:
+;      Caller passes no parameters
+;      Routine returns a code value in AX.
+;      The codes are these:
+;      0 : Adapter is unknown; recommend aborting
+;      1 : MDA (Monochrome Display Adapter)
+;      2 : CGA (Color Graphics Adapter)
+;
+;---------------------------------------------------------------
+
+DispID     PROC
+           mov  AH,1AH      ; Select PS/2 Identify Adapter Service
+           xor  AL,AL       ; Select Get Combination Code Subservice (AL=0)
+           int  10H         ; Call VIDEO
+           cmp  AL,1AH      ; If AL comes back with 1AH, we have a PS/2
+           jne  TryEGA      ; If not, jump down to test for the EGA
+           mov  AL,BL       ; Put Combination Code into AL
+           ret              ;   and go home!
+TryEGA:    mov  AH,12H      ; Select EGA Alternate Function
+           mov  BX,10H      ; Select Get Configuration Information subservice
+           int  10H         ; Call VIDEO
+           cmp  BX,10H      ; If BX comes back unchanged, EGA is *not* there
+           je   OldBords    ; Go see whether it's an MDA or CGA
+           cmp  BH,0        ; If BH = 0, it's an EGA/color combo
+           je   EGAColor    ;   otherwise it's EGA/mono
+           mov  AL,5        ; Store code 5 for EGA mono
+           ret              ;   and go home!
+EGAColor:  mov  AL,4        ; Store code 4 for EGA color
+           ret              ;   and go home!
+OldBords:  int  11H         ; Call Equipment Configuration interrupt
+           not  AL          ; Flip all bits in AL to opposite states
+           test AL,30H      ; If bits 4 & 5 are both = 0, it's an MDA
+           jne  CGA         ;   otherwise it's a CGA
+           mov  AL,1        ; Store code 1 for MDA
+           ret              ;   and go home!
+CGA:       mov  AL,2        ; Store code 2 for CGA
+           ret              ;   and go home!
+DispID     ENDP
+
+

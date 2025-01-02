@@ -1,0 +1,23 @@
+;---------------------------------------------------------------
+;   Word2Str  --  Converts a word passed in AX to a string at
+;                 DS:SI
+;   Last update 3/8/89
+;
+;   1 entry point:
+;
+;   Word2Str:
+;      Caller must pass:
+;      AX : Word to be converted
+;      DS : Segment of destination string
+;      SI : Offset of destination string
+;---------------------------------------------------------------
+
+Word2Str   PROC
+           mov  CX,AX       ; Save a copy of convertee in CX
+           xchg AH,AL       ; Swap high and low AX bytes to do high first
+           call Byte2Str    ; Convert AL to string at DS:SI
+           add  SI,2        ; Bump SI to point to second 2 characters
+           mov  AX,CX       ; Reload convertee into AX
+           call Byte2Str    ; Convert AL to string at DS:SI
+           ret              ; And we're done!
+Word2Str   ENDP

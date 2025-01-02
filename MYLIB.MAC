@@ -1,0 +1,161 @@
+;---------------------------------------------------------------
+;                         MYLIB.MAC
+;       Macro library from ASSEMBLING FROM SQUARE ONE
+;
+;                                      by Jeff Duntemann
+;                                      MASM/TASM
+;                                      Last update 3/16/89
+;---------------------------------------------------------------
+
+
+;---------------------------------------------------------------
+;   CLEAR    --  Clears the entire visible screen buffer
+;   Last update 3/16/89
+;
+;      Caller must pass:
+;      In VidAddress:  The address of the video refresh buffer
+;      In ClearAtom:   The character/attribute pair to fill the
+;                      buffer with.  The high byte contains the
+;                      attribute and the low byte the character.
+;      In BufLength:   The number of *characters* in the visible
+;                      display buffer, *not* the number of bytes!
+;                      This is typically 2000 for a 25-line screen
+;                      or 4000 for a 50-line screen.
+;      Action:         Clears the screen by machine-gunning the
+;                      character/attribute pair in AX into the
+;                      display buffer beginning at VidAddress.
+;---------------------------------------------------------------
+Clear      MACRO VidAddress,ClearAtom,BufLength
+           les  DI,DWORD PTR VidAddress
+           mov  AX,ClearAtom
+           mov  CX,BufLength
+           rep  stosw
+           GotoXY 0,0
+           ENDM
+
+;---------------------------------------------------------------
+;   RULER    --  Displays a "1234567890"-style ruler on-screen
+;   Last update 11/25/91
+;
+;      Caller must pass:
+;      In VidAddress: The address of the start of the video buffer
+;      In Length:  The length of the ruler to be displayed
+;      In ScreenW: The width of the current screen (usually 80)
+;      In ScreenY: The line of the screen where the ruler is
+;                  to be displayed (0-24)
+;      In ScreenX: The row of the screen where the ruler should
+;                  start (0-79)
+;      Action:     Displays an ASCII ruler at ScreenX,ScreenY.
+;---------------------------------------------------------------
+Ruler      MACRO VidAddress,Length,ScreenW,ScreenX,ScreenY
+           les    DI,DWORD PTR VidAddress
+           mov    AL,ScreenY   ; Move Y position to AL
+           mov    AH,ScreenW   ; Move screen width to AH
+           imul   AH           ; Do 8-bit multiply AL*AH to AX
+           add    DI,AX        ; Add Y offset into vidbuff to DI
+           add    DI,ScreenX   ; Add X offset into vidbuf to DI
+           shl    DI,1         ; Multiply by two for final address
+           mov    CX,Length    ; CX monitors the ruler length
+           mov    AH,07        ; Attribute 7 is "normal" text
+           mov    AL,'1'       ; Start with digit "1"
+
+DoChar:    stosw               ; Note that there's no REP prefix!
+           add    AL,'1'       ; Bump the character value in AL up by 1
+           aaa                 ; Adjust AX to make this a BCD addition
+           add    AL,'0'       ; Basically, put binary 3 in AL's high nybble
+           mov    AH,07        ; Make sure our attribute is still 7
+           loop   DoChar       ; Go back & do another char until BL goes to 0
+
+           ENDM
+
+;---------------------------------------------------------------
+;   GOTOXY    --  Positions the hardware cursor to X,Y
+;   Last update 3/5/89
+;
+;      Caller must pass:
+;      In NewX: The new X value
+;      In NewY: The new Y value
+;        These are both 0-based; i.e., they assume a screen
+;        whose dimensions are 24 by 79, not 25 by 80.
+;      Action:  Moves the hardware cursor to the X,Y position
+;               passed as NewX and NewY.
+;---------------------------------------------------------------
+GotoXY     MACRO NewX,NewY
+           mov DH,NewY
+           mov DL,NewX
+           mov AH,02H        ; Select VIDEO service 2: Position cursor
+           mov BH,0          ; Stay with display page 0
+           int 10H           ; Call VIDEO
+           ENDM
+
+
+;---------------------------------------------------------------
+;   NEWLINE  --  Sends a newline sequence to DOS Standard Output
+;                via DOS service 40H
+;   Last update 3/16/89
+;
+;      Caller need not pass any parameters.
+;      Action:  Sends a newline sequence DOS Standard Output
+;---------------------------------------------------------------
+
+Newline    MACRO
+           Write CRLF,2
+           ENDM
+
+;---------------------------------------------------------------
+;   POKECHAR    --  Inserts a single character into a string
+;   Last update 3/16/89
+;
+;      Caller must pass:
+;      In Target:  The name of the string to be poked at
+;      In TheChar: The character to be pocked into the string
+;      In ToPos:   The 0-based position in the string to poke to
+;      Action:     Pokes character passed in TheChar into string
+;                  passed in Target to position passed in ToPos.
+;                  The first character in the string is 0, etc.
+;---------------------------------------------------------------
+PokeChar   MACRO Target,TheChar,ToPos
+           lea  BX,Target  ; Load the address of target string into BX
+           mov  BYTE PTR [BX+ToPos],TheChar  ; Move char into the string
+           ENDM
+
+;---------------------------------------------------------------
+;   WRITE    --  Displays information to the screen via DOS
+;                service 40: Print String to Standard Output
+;   Last update 3/16/89
+;
+;      Caller must pass:
+;      In ShowIt:     The name of the string to be displayed
+;      In ShowLength: The length of the string to be displayed
+;      Action:  Displays the string to DOS Standard Output
+;---------------------------------------------------------------
+Write      MACRO ShowIt,ShowLength
+           mov BX,1          ; Selects DOS file handle 1: Standard Output
+           mov CX,ShowLength ; Length of string passed in CX
+           lea DX,Showit     ; Offset address of string is passed in DX
+           mov AH,40H        ; Select DOS service 40: Print String
+           int 21H           ; Call DOS
+           ENDM
+
+;---------------------------------------------------------------
+;   WRITELN  --  Displays information to the screen via DOS
+;                service 40H: Display to Standard Output, then
+;                issues a newline
+;   Last update 3/16/89
+;
+;      Caller must pass:
+;      In ShowIt: The name of the string to be displayed
+;      In ShowLength: The length of the string to be displayed
+;      Action:  Displays the string in ShowIt, then issues a
+;               newline.  Hardware cursor will move to the
+;               left margin of the following line.  If the
+;               display is to the bottom screen line, the
+;               screen will scroll.
+;      Calls: Write
+;---------------------------------------------------------------
+
+Writeln    MACRO ShowIt,ShowLength
+           Write ShowIt,ShowLength  ; Display the string proper through Write
+           Write CRLF,2             ; Display the newline string through Write
+           ENDM
+
